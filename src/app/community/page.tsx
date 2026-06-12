@@ -15,74 +15,94 @@ const REGIONS = ["전체", "완도읍", "노화도", "청산도", "금일도", "
 export default function CommunityPage() {
   const [selectedRegion, setSelectedRegion] = useState("전체");
   const [inputText, setInputText] = useState("");
+  const [likedIds, setLikedIds] = useState<number[]>([]);
 
   const filtered = selectedRegion === "전체"
     ? MOCK_POSTS
     : MOCK_POSTS.filter((p) => p.region === selectedRegion);
 
-  return (
-    <div className="px-4 py-4 space-y-4 max-w-2xl mx-auto">
+  const toggleLike = (id: number) => {
+    setLikedIds((prev) => prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]);
+  };
 
-      {/* 한 줄 올리기 */}
-      <section className="bg-white rounded-2xl p-4 shadow-sm">
-        <h2 className="text-sm font-medium text-gray-400 mb-3">✏️ 오늘 바다 어때요?</h2>
+  return (
+    <div className="max-w-2xl mx-auto">
+
+      {/* 글 작성 */}
+      <div className="bg-[#0A3D52] px-4 pt-4 pb-6">
+        <p className="text-white font-bold text-base mb-3">✏️ 오늘 바다 어때요?</p>
         <div className="flex gap-2">
           <input
             type="text"
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
             placeholder="한 줄로 현재 바다 상황을 공유하세요"
-            className="flex-1 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#0E6E8C]"
+            className="flex-1 bg-white/15 text-white placeholder-white/50 border border-white/20 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-white/50"
           />
           <button
-            className="bg-[#0E6E8C] text-white px-4 py-3 rounded-xl text-sm font-medium min-w-[60px]"
+            className="bg-white text-[#0A3D52] px-4 py-3 rounded-xl text-sm font-bold flex-shrink-0 active:bg-gray-100 transition-colors"
             onClick={() => setInputText("")}
           >
             올리기
           </button>
         </div>
-      </section>
-
-      {/* 지역 필터 */}
-      <div className="flex gap-2 overflow-x-auto pb-1">
-        {REGIONS.map((region) => (
-          <button
-            key={region}
-            onClick={() => setSelectedRegion(region)}
-            className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-              selectedRegion === region
-                ? "bg-[#0A3D52] text-white"
-                : "bg-white text-gray-500 border border-gray-200"
-            }`}
-          >
-            {region}
-          </button>
-        ))}
       </div>
 
-      {/* 피드 */}
-      <section className="space-y-3">
-        {filtered.map(({ id, region, content, time, likes }) => (
-          <div key={id} className="bg-white rounded-2xl p-4 shadow-sm">
-            <div className="flex items-start justify-between gap-2">
-              <div className="flex items-start gap-3 flex-1">
-                <span className="text-xs font-medium bg-[#C8EBF3] text-[#0A3D52] px-2 py-1 rounded-full flex-shrink-0">
-                  {region}
-                </span>
-                <p className="text-sm text-[#111827] leading-relaxed">{content}</p>
-              </div>
-            </div>
-            <div className="flex items-center justify-between mt-3">
-              <span className="text-xs text-gray-400">{time}</span>
-              <button className="flex items-center gap-1 text-xs text-gray-400">
-                <span>👍</span>
-                <span>{likes}</span>
-              </button>
-            </div>
-          </div>
-        ))}
-      </section>
+      <div className="px-4 py-4 space-y-4">
 
+        {/* 지역 필터 */}
+        <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
+          {REGIONS.map((region) => (
+            <button
+              key={region}
+              onClick={() => setSelectedRegion(region)}
+              className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-semibold transition-colors active:scale-95 ${
+                selectedRegion === region
+                  ? "bg-[#0A3D52] text-white shadow-sm"
+                  : "bg-white text-gray-500 border border-gray-200"
+              }`}
+            >
+              {region}
+            </button>
+          ))}
+        </div>
+
+        {/* 피드 */}
+        <div className="space-y-3">
+          {filtered.length === 0 ? (
+            <div className="bg-white rounded-2xl p-8 text-center border border-gray-100">
+              <p className="text-3xl mb-2">🌊</p>
+              <p className="text-gray-400 text-sm">이 지역 게시글이 없습니다</p>
+            </div>
+          ) : (
+            filtered.map(({ id, region, content, time, likes }) => (
+              <div key={id} className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+                <div className="flex items-start gap-3">
+                  <span className="text-xs font-bold bg-[#0A3D52] text-white px-2.5 py-1 rounded-lg flex-shrink-0 mt-0.5">
+                    {region}
+                  </span>
+                  <p className="text-base text-[#111827] leading-relaxed flex-1">{content}</p>
+                </div>
+                <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-50">
+                  <span className="text-xs text-gray-400">{time}</span>
+                  <button
+                    onClick={() => toggleLike(id)}
+                    className={`flex items-center gap-1.5 text-sm font-semibold px-3 py-1.5 rounded-full transition-colors ${
+                      likedIds.includes(id)
+                        ? "bg-blue-50 text-[#0E6E8C]"
+                        : "bg-gray-50 text-gray-400"
+                    }`}
+                  >
+                    <span>{likedIds.includes(id) ? "👍" : "👍"}</span>
+                    <span>{likes + (likedIds.includes(id) ? 1 : 0)}</span>
+                  </button>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+
+      </div>
     </div>
   );
 }

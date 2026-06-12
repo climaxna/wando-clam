@@ -4,13 +4,17 @@
   --font-sans: var(--font-noto-sans);
 }
 
-body {
-  background-color: #F5F0E8;
-  color: #1A1A2E;
-  font-family: var(--font-noto-sans), "Noto Sans KR", sans-serif;
+* {
+  -webkit-tap-highlight-color: transparent;
 }
 
-/* iOS safe area */
+body {
+  background-color: #EFF6F9;
+  color: #111827;
+  font-family: var(--font-noto-sans), "Noto Sans KR", sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
 .safe-area-inset-bottom {
   padding-bottom: env(safe-area-inset-bottom);
 }

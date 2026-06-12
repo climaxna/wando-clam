@@ -22,15 +22,23 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ko" className={`${notoSansKR.variable} h-full`}>
-      <body className="min-h-full flex flex-col bg-[#F7F2E8] text-[#111827]">
-        <header className="bg-[#0A3D52] text-white px-4 py-3 flex items-center justify-between sticky top-0 z-40">
-          <div className="flex items-center gap-2">
+      <body className="min-h-full flex flex-col bg-[#EFF6F9] text-[#111827]">
+        <header className="bg-[#0A3D52] text-white px-5 py-4 flex items-center justify-between sticky top-0 z-40 shadow-md">
+          <div className="flex items-center gap-2.5">
             <span className="text-2xl">🌊</span>
-            <span className="font-bold text-lg tracking-tight">완도바다</span>
+            <div>
+              <span className="font-bold text-xl tracking-tight leading-none block">완도바다</span>
+              <span className="text-xs text-blue-200 opacity-80">전복 양식 정보 허브</span>
+            </div>
           </div>
-          <button className="text-2xl" aria-label="알람">🔔</button>
+          <button
+            className="w-10 h-10 flex items-center justify-center rounded-full bg-white/10 active:bg-white/20 transition-colors"
+            aria-label="알람"
+          >
+            <span className="text-xl">🔔</span>
+          </button>
         </header>
-        <main className="flex-1 pb-20">{children}</main>
+        <main className="flex-1 pb-24">{children}</main>
         <BottomNav />
       </body>
     </html>
