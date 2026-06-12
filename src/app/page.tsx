@@ -1,91 +1,206 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import Link from "next/link";
+import { getZones, getTodayFeedingByZone, Zone } from "@/lib/store";
 
-interface Todo {
-  id: number;
-  text: string;
-  done: boolean;
-}
+const MARINE = {
+  waterTemp: 18.4,
+  waveHeight: 0.6,
+  windSpeed: 3.2,
+  weather: "맑음",
+  weatherIcon: "☀️",
+};
 
-export default function Home() {
-  const [todos, setTodos] = useState<Todo[]>([]);
-  const [input, setInput] = useState("");
+const TEMP_7DAY = [17.2, 17.8, 18.1, 18.4, 18.6, 18.3, 18.4];
 
-  function addTodo() {
-    const text = input.trim();
-    if (!text) return;
-    setTodos([...todos, { id: Date.now(), text, done: false }]);
-    setInput("");
-  }
+const FORECAST = [
+  { day: "오늘", icon: "☀️", temp: "19°", wave: "0.6m" },
+  { day: "내일", icon: "🌤️", temp: "17°", wave: "0.8m" },
+  { day: "목", icon: "☁️", temp: "16°", wave: "1.1m" },
+  { day: "금", icon: "🌧️", temp: "14°", wave: "1.8m" },
+  { day: "토", icon: "🌤️", temp: "18°", wave: "0.7m" },
+];
 
-  function toggleTodo(id: number) {
-    setTodos(todos.map((t) => (t.id === id ? { ...t, done: !t.done } : t)));
-  }
-
-  function deleteTodo(id: number) {
-    setTodos(todos.filter((t) => t.id !== id));
-  }
+function TempSparkline({ temps }: { temps: number[] }) {
+  const min = Math.min(...temps);
+  const max = Math.max(...temps);
+  const range = max - min || 1;
+  const W = 300;
+  const H = 56;
+  const pts = temps
+    .map((t, i) => {
+      const x = (i / (temps.length - 1)) * W;
+      const y = H - ((t - min) / range) * H * 0.85 - H * 0.075;
+      return `${x},${y}`;
+    })
+    .join(" ");
 
   return (
-    <div className="min-h-screen bg-zinc-50 flex items-start justify-center pt-20 px-4">
-      <div className="w-full max-w-md bg-white rounded-2xl shadow-md p-6">
-        <h1 className="text-2xl font-bold text-zinc-800 mb-6">Todo List</h1>
+    <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-14" preserveAspectRatio="none">
+      <polyline
+        points={pts}
+        fill="none"
+        stroke="#1B8AB8"
+        strokeWidth="2.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      {temps.map((t, i) => {
+        const x = (i / (temps.length - 1)) * W;
+        const y = H - ((t - min) / range) * H * 0.85 - H * 0.075;
+        return <circle key={i} cx={x} cy={y} r="3.5" fill="#1B8AB8" />;
+      })}
+    </svg>
+  );
+}
 
-        <div className="flex gap-2 mb-6">
-          <input
-            type="text"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && addTodo()}
-            placeholder="할 일을 입력하세요"
-            className="flex-1 border border-zinc-300 rounded-lg px-4 py-2 text-sm outline-none focus:border-zinc-500"
-          />
-          <button
-            onClick={addTodo}
-            className="bg-zinc-800 text-white px-4 py-2 rounded-lg text-sm hover:bg-zinc-700 transition-colors"
-          >
-            추가
-          </button>
+type ZoneStatus = "done" | "partial" | "none";
+
+const STATUS_STYLE: Record<ZoneStatus, { icon: string; border: string; bg: string; text: string }> = {
+  done: { icon: "✅", border: "border-[#2E9E6B]", bg: "bg-[#2E9E6B]/10", text: "text-[#2E9E6B]" },
+  partial: { icon: "⚠️", border: "border-yellow-400", bg: "bg-yellow-50", text: "text-yellow-600" },
+  none: { icon: "❌", border: "border-[#E85D4A]", bg: "bg-[#E85D4A]/10", text: "text-[#E85D4A]" },
+};
+
+export default function Dashboard() {
+  const [zones, setZones] = useState<Zone[]>([]);
+  const [statusMap, setStatusMap] = useState<Record<string, ZoneStatus>>({});
+
+  useEffect(() => {
+    const z = getZones();
+    setZones(z);
+    const m: Record<string, ZoneStatus> = {};
+    z.forEach((zone) => {
+      const logs = getTodayFeedingByZone(zone.id);
+      m[zone.id] = logs.length >= 2 ? "done" : logs.length === 1 ? "partial" : "none";
+    });
+    setStatusMap(m);
+  }, []);
+
+  const isWarning = MARINE.waveHeight >= 1.5 || MARINE.windSpeed >= 10;
+  const doneCount = Object.values(statusMap).filter((s) => s === "done").length;
+
+  return (
+    <div className="px-4 py-4 space-y-4 max-w-2xl mx-auto">
+      {isWarning && (
+        <div className="bg-[#E85D4A] text-white rounded-2xl p-4 flex items-center gap-3">
+          <span className="text-3xl">⚠️</span>
+          <div>
+            <p className="font-bold text-base">기상 주의</p>
+            <p className="text-sm opacity-90">
+              파고 {MARINE.waveHeight}m · 풍속 {MARINE.windSpeed}m/s
+            </p>
+          </div>
         </div>
+      )}
 
-        {todos.length === 0 ? (
-          <p className="text-zinc-400 text-sm text-center py-8">할 일이 없어요</p>
-        ) : (
-          <ul className="space-y-2">
-            {todos.map((todo) => (
-              <li
-                key={todo.id}
-                className="flex items-center gap-3 p-3 rounded-lg border border-zinc-100 hover:border-zinc-200 transition-colors"
+      {/* Marine environment */}
+      <section className="bg-white rounded-2xl p-5 shadow-sm">
+        <h2 className="text-sm font-medium text-gray-400 mb-4">🌊 해양 환경</h2>
+        <div className="grid grid-cols-4 gap-2">
+          {[
+            { label: "수온", value: `${MARINE.waterTemp}°C`, icon: "🌡️" },
+            { label: "파고", value: `${MARINE.waveHeight}m`, icon: "🌊" },
+            { label: "풍속", value: `${MARINE.windSpeed}m/s`, icon: "💨" },
+            { label: "날씨", value: MARINE.weather, icon: MARINE.weatherIcon },
+          ].map(({ label, value, icon }) => (
+            <div key={label} className="flex flex-col items-center text-center gap-1">
+              <span className="text-2xl">{icon}</span>
+              <span className="text-sm font-bold text-[#0A4F6E]">{value}</span>
+              <span className="text-xs text-gray-400">{label}</span>
+            </div>
+          ))}
+        </div>
+        <p className="text-xs text-gray-300 mt-3 text-right">* 모의 데이터 (API 연동 예정)</p>
+      </section>
+
+      {/* Temperature trend */}
+      <section className="bg-white rounded-2xl p-5 shadow-sm">
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-sm font-medium text-gray-400">📈 수온 7일 추이</h2>
+          <span className="text-base font-bold text-[#1B8AB8]">
+            {TEMP_7DAY[TEMP_7DAY.length - 1]}°C
+          </span>
+        </div>
+        <TempSparkline temps={TEMP_7DAY} />
+        <div className="flex justify-between mt-1">
+          <span className="text-xs text-gray-300">7일 전</span>
+          <span className="text-xs text-gray-300">오늘</span>
+        </div>
+      </section>
+
+      {/* 5-day forecast */}
+      <section className="bg-white rounded-2xl p-5 shadow-sm">
+        <h2 className="text-sm font-medium text-gray-400 mb-3">📅 5일 예보</h2>
+        <div className="flex gap-2 overflow-x-auto pb-1">
+          {FORECAST.map(({ day, icon, temp, wave }) => (
+            <div
+              key={day}
+              className="flex-shrink-0 flex flex-col items-center gap-1 bg-[#E8F4F8] rounded-xl px-4 py-3 min-w-[68px]"
+            >
+              <span className="text-xs text-gray-500">{day}</span>
+              <span className="text-2xl">{icon}</span>
+              <span className="text-sm font-bold text-[#1A1A2E]">{temp}</span>
+              <span className="text-xs text-[#1B8AB8]">{wave}</span>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Quick actions */}
+      <section className="bg-white rounded-2xl p-5 shadow-sm">
+        <h2 className="text-sm font-medium text-gray-400 mb-3">⚡ 빠른 작업</h2>
+        <Link
+          href="/feeding"
+          className="block w-full bg-[#0A4F6E] text-white text-center py-4 rounded-xl font-medium text-lg mb-3 hover:bg-[#1B8AB8] transition-colors"
+        >
+          + 급이 기록하기
+        </Link>
+        <div className="grid grid-cols-3 gap-2">
+          {[
+            { href: "/analysis", icon: "📊", label: "급이 분석" },
+            { href: "/zones", icon: "🦪", label: "구역 관리" },
+            { href: "/marine", icon: "🌊", label: "해양 상세" },
+          ].map(({ href, icon, label }) => (
+            <Link
+              key={href}
+              href={href}
+              className="flex flex-col items-center gap-1 bg-[#E8F4F8] rounded-xl py-3 hover:bg-[#d4eaf5] transition-colors"
+            >
+              <span className="text-xl">{icon}</span>
+              <span className="text-xs text-gray-600">{label}</span>
+            </Link>
+          ))}
+        </div>
+      </section>
+
+      {/* Zone status */}
+      <section className="bg-white rounded-2xl p-5 shadow-sm">
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-sm font-medium text-gray-400">🗂️ 오늘 구역별 현황</h2>
+          <span className="text-xs text-gray-400">
+            {doneCount} / {zones.length} 완료
+          </span>
+        </div>
+        <div className="grid grid-cols-3 gap-2">
+          {zones.map((zone) => {
+            const s = statusMap[zone.id] ?? "none";
+            const style = STATUS_STYLE[s];
+            return (
+              <div
+                key={zone.id}
+                className={`flex flex-col items-center gap-1 p-3 rounded-xl border ${style.border} ${style.bg}`}
               >
-                <input
-                  type="checkbox"
-                  checked={todo.done}
-                  onChange={() => toggleTodo(todo.id)}
-                  className="w-4 h-4 accent-zinc-800 cursor-pointer"
-                />
-                <span
-                  className={`flex-1 text-sm ${
-                    todo.done ? "line-through text-zinc-400" : "text-zinc-700"
-                  }`}
-                >
-                  {todo.text}
+                <span className="text-lg">{style.icon}</span>
+                <span className={`text-xs font-medium ${style.text} text-center leading-tight`}>
+                  {zone.name}
                 </span>
-                <button
-                  onClick={() => deleteTodo(todo.id)}
-                  className="text-zinc-400 hover:text-red-500 transition-colors text-xs"
-                >
-                  삭제
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
-
-        <p className="text-xs text-zinc-400 mt-4 text-right">
-          {todos.filter((t) => t.done).length} / {todos.length} 완료
-        </p>
-      </div>
+              </div>
+            );
+          })}
+        </div>
+      </section>
     </div>
   );
 }
