@@ -11,7 +11,7 @@ const notoSansKR = Noto_Sans_KR({
 });
 
 export const metadata: Metadata = {
-  title: "완도 전복 다이어리",
+  title: "우주수산",
   description: "완도 전복 양식장 먹이 기록 및 분석 앱",
 };
 
@@ -25,7 +25,7 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col bg-[#F5F0E8] text-[#1A1A2E]">
         <header className="bg-[#0A4F6E] text-white px-4 py-3 flex items-center gap-3 sticky top-0 z-40">
           <span className="text-2xl">🐚</span>
-          <span className="font-bold text-lg tracking-tight">완도 전복 다이어리</span>
+          <span className="font-bold text-lg tracking-tight">우주수산</span>
         </header>
         <main className="flex-1 pb-20">{children}</main>
         <BottomNav />
